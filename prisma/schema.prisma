@@ -1,0 +1,45 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  password String // hash sau
+  fullName String @map("full_name")
+  avatarUrl String? @map("avatar_url")
+  role Role @default(STUDENT)
+
+  // Thông tin mở rộng
+  phoneNumber String? @map("phone_number")
+  dateOfBirth DateTime? @map("date_of_birth")
+  address String? @map("address")
+  faculty String? @map("faculty") // Khoa (dành cho giảng viên/học sinh)
+  studentId String? @unique @map("student_id") // MSSV
+  employeeId String? @unique @map("employee_id") // MSGV
+  
+
+  // Metadata: thông tin mô tả dữ liệu
+  isActive Boolean @default(true) @map("is_active")
+  lastLogin DateTime? @map("last_log_in")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users") // mapping model vào database
+}
+enum Role {
+  STUDENT
+  INSTRUCTOR
+  ACADEMIC_AFFAIRS_OFFICE // phòng đào tạo
+  FACULTY_OFFICE // phòng khoa
+}
