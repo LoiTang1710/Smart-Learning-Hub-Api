@@ -9,10 +9,12 @@ import {
   Param,
   Patch,
   Post,
+  UseInterceptors,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+
 
 @Controller('users')
 export class UserController {
@@ -21,51 +23,30 @@ export class UserController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createUser(@Body() createUserDto: CreateUserDto) {
-    return {
-      success: true,
-      message: 'Tạo user thành công',
-      data: await this.userService.createUser(createUserDto),
-    };
+    return await this.userService.createUser(createUserDto);
   }
 
   @Get()
   async getAllUsers() {
-    return {
-      success: true,
-      data: await this.userService.getAllUsers(),
-    };
+    return await this.userService.getAllUsers();
   }
   @Get(':id')
   async getDetailById(@Param('id') id: string) {
-    return {
-      success: true,
-      data: await this.userService.getDetailById(id),
-    };
+    return await this.userService.getDetailById(id);
   }
   @Patch(':id')
   async updateUser(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    return {
-      success: true,
-      data: await this.userService.updateUser(id, updateUserDto),
-    };
+    return await this.userService.updateUser(id, updateUserDto);
   }
   @Delete(':id')
-  async removeUser(@Param('id') id:string){
-    return {
-        success: true,
-        data: await this.userService.removeUser(id)
-    }
+  async removeUser(@Param('id') id: string) {
+    return await this.userService.removeUser(id);
   }
   @Patch(':id')
-  async toggleStatus(@Param('id') id:string){
-    const user = await this.userService.toggleStatus(id)
-    return {
-        success: true,
-        message: `User ${user.isActive ? 'được kích hoạt' : 'bị vô hiệu'} thành công`,
-        data: user
-    }
+  async toggleStatus(@Param('id') id: string) {
+    return await this.userService.toggleStatus(id);
   }
 }

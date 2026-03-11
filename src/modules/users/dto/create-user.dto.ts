@@ -3,22 +3,28 @@ import {
   IsDateString,
   IsEmail,
   IsEnum,
+  IsNotEmpty,
   IsOptional,
   IsString,
   Matches,
+  MaxLength,
   MinLength,
 } from 'class-validator';
 import { Role } from 'generated/prisma/enums';
 
 export class CreateUserDto {
-  @IsEmail({}, { message: 'Email không đúng định dạng' })
+  @IsNotEmpty()
+  @IsEmail()
   email: string;
 
+  @IsNotEmpty()
   @IsString()
-  @MinLength(8, { message: 'Mật khẩu phải có ít nhất 8 ký tự' })
+  @MinLength(8)
   password: string;
 
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(256)
   fullName: string;
 
   @IsOptional()
@@ -52,5 +58,5 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsString()
-  employeeId: string;
+  employeeId?: string;
 }
