@@ -14,10 +14,12 @@ export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
-    constructor(){
-        const pool = new PrismaPg({connectionString:process.env.DATABASE_URL})
-        super({adapter:pool})
-    } 
+  // https://stackoverflow.com/questions/79845075/prismaclientinitializationerror-prismaclient-needs-to-be-constructed-with-a-n
+  constructor() {
+    // driver adapter kết nối postgre để dụng thu viện của PostgreSql
+    const pool = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+    super({ adapter: pool });
+  }
   async onModuleInit() {
     await this.$connect();
     console.log('Connected to database');
