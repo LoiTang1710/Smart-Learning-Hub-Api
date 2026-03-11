@@ -1,8 +1,7 @@
-export class UserResposneDto {
+export class UserResponseDto {
   id: string;
   email: string;
-  password: string;
-  fullname: string;
+  fullName: string;
   avatarUrl?: string;
   role: string;
   phoneNumber?: string;
@@ -13,6 +12,6 @@ export class UserResposneDto {
   employeeId?: string;
   isActive: boolean;
   lastLogin: Date;
-  createAt: Date;
+  createdAt: Date;
   updatedAt: Date;
 }

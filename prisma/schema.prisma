@@ -7,6 +7,9 @@
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
+  // fix bug: exports is not defined in ES module scope
+  // link: https://github.com/prisma/prisma/issues/27556
+  moduleFormat = "cjs"
 }
 
 datasource db {
