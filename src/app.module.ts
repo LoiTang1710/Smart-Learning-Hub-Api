@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 // import { AppController } from './app.controller';
 // import { AppService } from './app.service';
 import { UserModule } from './modules/users/user.module';
-import { CourseModule } from './modules/course/course.module';
+import { CoursesModule } from './modules/courses/courses.module';
 import { EnrollmentModule } from './modules/enrollment/enrollment.module';
 import { AiModule } from './modules/ai/ai.module';
 import { AdminModule } from './modules/admin/admin.module';
@@ -16,7 +16,7 @@ import { PrismaService } from 'prisma/prisma.service';
       isGlobal: true,
     }),
     UserModule,
-    CourseModule,
+    CoursesModule,
     EnrollmentModule,
     AiModule,
     AdminModule,

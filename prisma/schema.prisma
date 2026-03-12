@@ -39,10 +39,38 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("users") // mapping model vào database
+  courses Course[]
 }
+
+model Course{
+  id String @id @default(cuid())
+  title String @map("title")
+  description String @map("description")
+  rate Float @default(0) @map("rate")
+  level Level @default(Beginner) @map("level")
+  duration String? @map("duration")
+  thumbnail String? @map("thumbnail")
+  totalStudent Int? @default(0) @map("total_student")
+
+  //Foreign key
+  instructorId String
+  instructor User @relation(fields: [instructorId], references: [id])
+
+  isActive Boolean @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("courses")
+}
+
 enum Role {
   STUDENT
   INSTRUCTOR
   ACADEMIC_AFFAIRS_OFFICE // phòng đào tạo
   FACULTY_OFFICE // phòng khoa
+}
+enum Level {
+  Beginner
+  Intermediate
+  Expert
 }
