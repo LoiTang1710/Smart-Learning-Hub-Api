@@ -3,11 +3,12 @@ import { Module } from '@nestjs/common';
 // import { AppService } from './app.service';
 import { UserModule } from './modules/users/user.module';
 import { CoursesModule } from './modules/courses/courses.module';
-import { EnrollmentModule } from './modules/enrollment/enrollment.module';
+import { EnrollmentModule } from './modules/enrollments/enrollments.module';
 import { AiModule } from './modules/ai/ai.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ConfigModule } from '@nestjs/config';
-import { PrismaService } from 'prisma/prisma.service';
+
+import { PrismaModule } from 'prisma/prisma.module';
 
 @Module({
   imports: [
@@ -20,9 +21,8 @@ import { PrismaService } from 'prisma/prisma.service';
     EnrollmentModule,
     AiModule,
     AdminModule,
+    PrismaModule,
   ],
   controllers: [],
-  providers: [PrismaService],
-  // exports: [PrismaService],
 })
 export class AppModule {}

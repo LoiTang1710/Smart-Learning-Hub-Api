@@ -19,6 +19,7 @@ export class PrismaService
     // driver adapter kết nối postgre để dụng thu viện của PostgreSql
     const pool = new PrismaPg({ connectionString: process.env.DATABASE_URL });
     super({ adapter: pool });
+    console.log('PrismaService instance created');
   }
   async onModuleInit() {
     await this.$connect();
