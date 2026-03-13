@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   ConflictException,
   Injectable,
@@ -7,7 +8,6 @@ import { PrismaService } from 'prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserResponseDto } from './dto/user-response.dto';
 
 @Injectable()
 export class UserService {
@@ -56,10 +56,7 @@ export class UserService {
       where: { email },
     });
   }
-  async updateUser(
-    id: string,
-    updateUserDto: UpdateUserDto,
-  ) {
+  async updateUser(id: string, updateUserDto: UpdateUserDto) {
     await this.getDetailById(id);
 
     if (updateUserDto.password) {
