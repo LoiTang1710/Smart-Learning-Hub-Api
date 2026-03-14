@@ -21,7 +21,11 @@ export class EnrollmentsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createOne(@Body() createEnrollmentDto: CreateEnrollmentDto) {
-    return await this.enrollmentService.createOne(createEnrollmentDto);
+    return await this.enrollmentService.enroll(
+      createEnrollmentDto.userId,
+      createEnrollmentDto.userId,
+      createEnrollmentDto,
+    );
   }
   @Get('user/:userId')
   @HttpCode(HttpStatus.ACCEPTED)
