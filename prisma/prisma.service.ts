@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-
 /**
  * Service trung tâm quản lý kết nối tới database
  */
