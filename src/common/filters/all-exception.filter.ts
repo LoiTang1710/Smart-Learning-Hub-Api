@@ -1,46 +1,63 @@
+// common/filters/all-exceptions.filter.ts
 import {
-  ArgumentsHost,
-  Catch,
   ExceptionFilter,
+  Catch,
+  ArgumentsHost,
   HttpException,
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-// Source - https://stackoverflow.com/a/62141837
-// Posted by Mark DeLoura
-// Retrieved 2026-03-14, License - CC BY-SA 4.0
 import { Request, Response } from 'express';
-import { Prisma } from 'generated/prisma/client';
-
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
 @Catch()
 export class AllExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    let STATUS = HttpStatus.INTERNAL_SERVER_ERROR;
-    let MESSAGE: any = 'Internal server error';
-
-    if (exception instanceof HttpException) {
-      STATUS = exception.getStatus();
-      MESSAGE = exception.getResponse();
-    } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
-      switch (exception.code) {
-        case 'P2002':
-          STATUS = HttpStatus.CONFLICT;
-          MESSAGE = 'Lỗi duplicate: ' + String(exception?.meta?.target);
-          break;
-      }
-    }
-
-    response.status(STATUS).json({
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let responseBody: any = {
       success: false,
-      statusCode: STATUS,
-      MESSAGE,
       timestamp: new Date().toISOString(),
       path: request.url,
-    });
+    };
+
+    // Xử lý HttpException (do bạn throw từ service)
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const res = exception.getResponse();
+      // Nếu res là object, merge vào responseBody
+      if (typeof res === 'object') {
+        responseBody = { ...responseBody, ...res };
+      } else if (typeof res === 'string') {
+        (responseBody as { message?: string }).message = res;
+      }
+      responseBody.statusCode = status;
+    }
+    // Xử lý Prisma errors (nếu chưa được bắt ở service)
+    else if (exception instanceof PrismaClientKnownRequestError) {
+      status = HttpStatus.BAD_REQUEST;
+      responseBody.message = exception.message.replace(/\n/g, ' '); // dọn dẹp
+      responseBody.statusCode = status;
+    }
+    // Các lỗi khác
+    else if (exception instanceof Error) {
+      responseBody.message = exception.message;
+      responseBody.statusCode = status;
+    } else {
+      responseBody.message = 'Internal server error';
+      responseBody.statusCode = status;
+    }
+
+    // Log lỗi
+    this.logger.error(
+      `${request.method} ${request.url} - ${status} - ${JSON.stringify(responseBody)}`,
+      exception instanceof Error ? exception.stack : '',
+    );
+
+    response.status(status).json(responseBody);
   }
 }
