@@ -9,7 +9,7 @@ async function bootstrap() {
     logger: ['warn', 'error'],
   });
   app.useGlobalPipes(new ValidationPipe());
-  // app.useGlobalInterceptors(new TransformInterceptor());
+  app.useGlobalInterceptors(new TransformInterceptor());
   app.useGlobalFilters(new AllExceptionFilter());
   await app.listen(process.env.PORT ?? 3000, () => {
     console.log(`Server is listening at ${process.env.PORT}`);

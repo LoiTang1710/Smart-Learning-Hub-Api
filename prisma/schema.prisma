@@ -17,19 +17,48 @@ datasource db {
   provider = "postgresql"
 
 }
+// ENUM
+enum Level {
+  Beginner
+  Intermediate
+  Expert
+}
+enum Enroll_Status {
+  ACTIVE
+  COMPLETED
+  DROPPED
+}
+enum Course_Status {
+  DRAFT
+  PUBLISHED
+  ARCHIVE
+}
+enum Lesson_Type {
+  VIDEO
+  TEXT
+  QUIZ
+  ASSIGNMENT
+}
+
+//===================================
+//        MODELS
+//===================================
 model User {
-  id String @id @default(cuid())
+  id String @id @default(uuid())
   email String @unique 
   password String // hash sau
   fullName String @map("full_name")
   avatarUrl String? @map("avatar_url")
-  role Role @default(STUDENT)
+
+  //FK
+  roleId String
+  
 
   // Thông tin mở rộng
   phoneNumber String? @map("phone_number")
   dateOfBirth DateTime? @map("date_of_birth")
-  address String? @map("address")
-  faculty String? @map("faculty") // Khoa (dành cho giảng viên/học sinh)
+  address String? 
+  faculty String?  // Khoa (dành cho giảng viên/học sinh)
   studentId String? @unique @map("student_id") // MSSV
   employeeId String? @unique @map("employee_id") // MSGV
   
@@ -40,58 +69,116 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@map("users") // mapping model vào database
+  // FK ref
+  role Role @relation(fields: [roleId], references: [id])
   courses Course[]
   enrollments Enrollment[]
-}
 
+  
+  @@index([roleId])
+  @@map("users")
+}
+model Role {
+  id String @id @default(uuid())
+  role_name String @unique
+  description String?
+  
+  users User[]
+  role_permission Role_Permission[]
+
+  @@map("roles")
+}
+model Permission {
+  id String @id @default(uuid())
+  name String // course:create
+  resource String // course, student,...
+  action String
+
+  roles_permissions Role_Permission[]
+
+  @@map("permissions")
+}
+model Role_Permission {
+  roleId String
+  permissionId String
+  role Role @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId,permissionId])
+  @@map("roles_permissions")
+}
 model Course{
-  id String @id @default(cuid())
-  title String @map("title")
-  description String @map("description")
-  rate Float @default(0) @map("rate")
-  level Level @default(Beginner) @map("level")
-  duration String? @map("duration")
-  thumbnail String? @map("thumbnail")
+  id String @id @default(uuid())
+  title String 
+  description String 
+  rate Float @default(0) 
+  level Level @default(Beginner) 
+  durationHours Int? @map("duration_hours")
+  thumbnail String? 
   totalStudent Int? @default(0) @map("total_student")
+  status Course_Status @default(DRAFT)
 
   //Foreign key
-  instructorId String
-  instructor User @relation(fields: [instructorId], references: [id])
+  instructorId String @map("instructor_id")
+  
 
-  isActive Boolean @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@unique([instructorId])
-  @@map("courses")
   enrollments Enrollment[]
-}
+  instructor User @relation(fields: [instructorId], references: [id])
+  lessons Lesson[]
 
-model Enrollment{
-  id String @id @default(cuid())
-  userId String @map("user_id")
-  user User @relation(fields: [userId], references: [id])
-  courseId String @map("course_id")
-  course Course @relation(fields: [courseId], references: [id])
-  progress Float @default(0) @map("progress")
-  lastAccessIn DateTime @default(now()) @map("last_access_in")
-  completedAt DateTime? @map("completed_at")
+  @@map("courses")
+  @@index([instructorId])
+  @@unique([instructorId])
+}
+/*
+Ý tưởng thiết kế: Phân loại khóa học theo danh mục (có thể phân cấp).
+Mục đích: Giúp người học dễ dàng tìm kiếm khóa học theo lĩnh vực.
+Mục tiêu: Hỗ trợ điều hướng, gợi ý khóa học theo danh mục, phân tích xu hướng.
+Ví dụ: phân loại khoá học theo ngành "CNTT", và trong đó sẽ còn các chuyên ngành như "Lập trình web"
+*/
+model Course_Category{
+  id String @id @default(uuid())
+  name String @unique
+  parentId String?
+
+  parent Course_Category? @relation("CategoryHierchary", fields: [parentId], references: [id])
+  children Course_Category[] @relation("CategoryHierchary")
+
+  @@index([parentId])
+  @@map("course_categories")
+}
+model Lesson {
+  id String @id @default(uuid())
+  title String 
+  description String?
+  order Int? // thứ tự xuất hiện của bài học
+  type Lesson_Type
+  durationMinutes Int @map("duration_minutes")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
+  courseId String
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@unique([courseId,order])
+  @@map("lessons")
+}
+model Enrollment{
+  id String @id @default(uuid())
+  userId String @map("user_id")
+  courseId String @map("course_id")
+  enrollAt DateTime @default(now()) @map("enroll_at")
+  completedAt DateTime? @map("completed_at")
+  status Enroll_Status
+
+  user User @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+  
 
   @@unique([userId,courseId])
   @@map("enrollments")
 }
 
-enum Role {
-  STUDENT
-  INSTRUCTOR
-  ACADEMIC_AFFAIRS_OFFICE // phòng đào tạo
-  FACULTY_OFFICE // phòng khoa
-}
-enum Level {
-  Beginner
-  Intermediate
-  Expert
-}
