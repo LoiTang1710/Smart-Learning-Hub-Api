@@ -7,6 +7,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { Level } from 'generated/prisma/enums';
+//level: Beginner, Intermediate, Expert
 
 export class CreateCourseDto {
   @IsNotEmpty()

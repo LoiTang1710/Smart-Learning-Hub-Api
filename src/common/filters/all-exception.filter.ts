@@ -19,7 +19,13 @@ export class AllExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let responseBody: any = {
+    let responseBody: {
+      success: boolean;
+      timestamp: string;
+      path: string;
+      statusCode?: number;
+      message?: string;
+    } = {
       success: false,
       timestamp: new Date().toISOString(),
       path: request.url,

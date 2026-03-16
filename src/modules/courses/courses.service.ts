@@ -1,32 +1,46 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateCourseDto } from './dto/create-course.dto';
+import { CourseQueryDto } from './dto/course-query.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 
 @Injectable()
 export class CoursesService {
   constructor(private prisma: PrismaService) {}
 
-  async createCourse(createCourseDto: CreateCourseDto) {
-    return await this.prisma.course.create({
-      data: {
-        ...createCourseDto,
-      },
-    });
+  //1. Post /courses - tạo khoá học
+  async createCourse(data: CreateCourseDto) {
+    return this.prisma.course.create({ data });
   }
 
-  async findAll() {
-    return (await this.prisma.course.findMany()).map(({ ...result }) => result);
+  // 2. GET /courses - lấy DS khóa học (Có phân trang & filter)
+  async findAllCourse(query: CourseQueryDto) {
+    const { search, page, limit } = query;
+    const skip = (page - 1) * limit;
+
+    const whereCondition = search
+      ? { title: { contain: search, mode: 'insensitive' as const } }
+      : {};
+    const [course, total] = await Promise.all([
+      this.prisma.course.findMany({
+        where: whereCondition,
+        skip: skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.course.count({ where: whereCondition }),
+    ]);
+    return {
+      data: course,
+      meta: { total, page, limit, totalPage: Math.ceil(total / limit) },
+    };
   }
-  async findOne(id: string) {
-    return await this.prisma.course.findUnique({
-      where: { id },
-    });
+  async findCourseById(id: string) {
+    const course = await this.prisma.course.findUnique({ where: { id } });
+    if (!course) throw new NotFoundException('Không tìm thấy khoá học');
+    return course;
   }
-  async updateOne(id: string, updateCourseDto: UpdateCourseDto) {
+  async updateCourse(id: string, updateCourseDto: UpdateCourseDto) {
     return await this.prisma.course.update({
       where: { id },
       data: updateCourseDto,
@@ -39,3 +53,4 @@ export class CoursesService {
     return { message: `Xoá thành công id: ${id}` };
   }
 }
+// --- CÁC ENDPOINT QUAN HỆ ---
