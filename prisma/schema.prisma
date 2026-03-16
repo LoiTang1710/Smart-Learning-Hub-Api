@@ -39,7 +39,25 @@ enum Lesson_Type {
   QUIZ
   ASSIGNMENT
 }
-
+enum Progress_Status {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+enum Submission_Status {
+  PENDING
+  GRADED
+}
+enum Resource_Type {
+  ARTICLE
+  VIDEO
+  DOCUMENT  
+  LINK
+}
+enum Notification_Type {
+  ENROLLMENT
+  ASSIGMENT_GRADED
+}
 //===================================
 //        MODELS
 //===================================
@@ -73,6 +91,14 @@ model User {
   role Role @relation(fields: [roleId], references: [id])
   courses Course[]
   enrollments Enrollment[]
+  assigments Assignment[] @relation("CreatedAssignments")
+  submissions Submission[]
+  reviews Review[]
+  learning_resources LearningResource[] @relation("CreatedResources")
+  bookmarks Bookmark[]
+  notifications Notification[]
+  discussion Discussion[]
+  comments Comment[]
 
   
   @@index([roleId])
@@ -126,8 +152,13 @@ model Course{
   updatedAt DateTime @updatedAt @map("updated_at")
 
   enrollments Enrollment[]
+  assigments Assignment[]
   instructor User @relation(fields: [instructorId], references: [id])
   lessons Lesson[]
+  reviews Review[]
+  course_tags CourseTag[]
+  learning_resources LearningResource[]
+  discussion Discussion[]
 
   @@map("courses")
   @@index([instructorId])
@@ -150,6 +181,11 @@ model Course_Category{
   @@index([parentId])
   @@map("course_categories")
 }
+/*
+Ý tưởng thiết kế: Mỗi khóa học có nhiều bài học, được sắp xếp theo thứ tự.
+Mục đích: Quản lý cấu trúc bài giảng, loại bài học (video, text, quiz...).
+Mục tiêu: Theo dõi tiến độ chi tiết từng bài, cho phép giảng viên sắp xếp lại thứ tự dễ dàng.
+*/
 model Lesson {
   id String @id @default(uuid())
   title String 
@@ -162,9 +198,99 @@ model Lesson {
 
   courseId String
   course Course @relation(fields: [courseId], references: [id])
+  lesson_contents Lesson_Content[]
+  progresses Progress[]
+  learning_resources LearningResource[]
+  bookmarks Bookmark[]
+    discussion Discussion[]
 
   @@unique([courseId,order])
   @@map("lessons")
+}
+/*
+Ý tưởng thiết kế: Lưu nội dung thực tế của bài học dưới dạng JSON (có thể chứa video URL, text, quiz structure), hỗ trợ versioning.
+Mục đích: Tách nội dung khỏi metadata bài học, cho phép cập nhật nội dung mà không làm mất lịch sử (phiên bản cũ).
+Mục tiêu: Hỗ trợ rollback khi cần, theo dõi thay đổi nội dung, phục vụ A/B testing nội dung.
+*/
+model Lesson_Content {
+  id String @id @default(uuid())
+  contentType Lesson_Type @map("content_type")
+  content Json
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  lessonId String
+  lesson Lesson @relation(fields: [lessonId], references: [id])
+
+  @@index([lessonId])
+  @@unique([lessonId,version])
+  @@map("lesson_contents")
+}
+model Progress {
+  id String @id @default(uuid())
+  enrollmentId String
+  lessonId     String
+  status       Progress_Status @default(NOT_STARTED)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  lastPosition Int?           // vị trí video (giây), trang số
+  timeSpent    Int?           // tổng thời gian đã học (giây)
+
+  // Relations
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
+  lesson     Lesson     @relation(fields: [lessonId], references: [id])
+
+  @@unique([enrollmentId, lessonId])
+  @@index([enrollmentId])
+  @@index([lessonId])
+  @@index([status])
+  @@map("progresses")
+}
+/*
+Ý tưởng thiết kế: Bài tập lớn (assignment) trong khóa học, có thể có hạn nộp, điểm tối đa.
+Mục đích: Quản lý bài tập cần chấm điểm thủ công hoặc tự động.
+Mục tiêu: Hỗ trợ đánh giá năng lực, lưu trữ đề bài, phục vụ tính điểm tổng kết.
+*/
+model Assignment {
+  id          String   @id @default(uuid())
+  courseId    String
+  title       String
+  description String
+  dueDate     DateTime?
+  maxScore    Float
+  createdBy   String   // instructor id
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  course      Course       @relation(fields: [courseId], references: [id])
+  creator     User         @relation("CreatedAssignments", fields: [createdBy], references: [id])
+  submissions Submission[]
+
+  @@index([courseId])
+  @@index([dueDate])
+  @@map("assignments")
+}
+model Submission {
+  id           String         @id @default(uuid())
+  assignmentId String
+  userId       String
+  content      String?        // nội dung nộp (text) hoặc URL file
+  submittedAt  DateTime       @default(now())
+  score        Float?
+  feedback     String?
+  status       Submission_Status @default(PENDING)
+
+  // Relations
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+  user       User       @relation(fields: [userId], references: [id])
+
+  @@unique([assignmentId, userId])
+  @@index([assignmentId])
+  @@index([userId])
+  @@index([status])
+  @@map("submissions")
 }
 model Enrollment{
   id String @id @default(uuid())
@@ -174,6 +300,7 @@ model Enrollment{
   completedAt DateTime? @map("completed_at")
   status Enroll_Status
 
+  progresses Progress[]
   user User @relation(fields: [userId], references: [id])
   course Course @relation(fields: [courseId], references: [id])
   
@@ -181,4 +308,144 @@ model Enrollment{
   @@unique([userId,courseId])
   @@map("enrollments")
 }
+model Review {
+  id        String   @id @default(uuid())
+  userId    String
+  courseId  String
+  rating    Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
 
+  // Relations
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+  @@index([rating])
+  @@map("reviews")
+}
+
+model Tag {
+  id   String @id @default(uuid())
+  name String @unique
+
+  // Relations
+  courses CourseTag[]
+
+  @@map("tags")
+}
+
+model CourseTag {
+  courseId String
+  tagId    String
+
+  // Relations
+  course Course @relation(fields: [courseId], references: [id])
+  tag    Tag    @relation(fields: [tagId], references: [id])
+
+  @@id([courseId, tagId])
+  @@map("course_tags")
+}
+
+model LearningResource {
+  id          String       @id @default(uuid())
+  title       String
+  url         String
+  description String?
+  type        Resource_Type
+  courseId    String?
+  lessonId    String?
+  createdBy   String
+  createdAt   DateTime     @default(now())
+
+  // Relations
+  course  Course? @relation(fields: [courseId], references: [id])
+  lesson  Lesson? @relation(fields: [lessonId], references: [id])
+  creator User    @relation("CreatedResources", fields: [createdBy], references: [id])
+  bookmarks Bookmark[]
+
+  @@index([courseId])
+  @@index([lessonId])
+  @@index([createdBy])
+  @@map("learning_resources")
+}
+
+model Bookmark {
+  id         String   @id @default(uuid())
+  userId     String
+  resourceId String?
+  lessonId   String?
+  createdAt  DateTime @default(now())
+
+  // Relations
+  user     User              @relation(fields: [userId], references: [id])
+  resource LearningResource? @relation(fields: [resourceId], references: [id])
+  lesson   Lesson?           @relation(fields: [lessonId], references: [id])
+
+  // Đảm bảo một trong hai resourceId hoặc lessonId có giá trị
+  @@index([userId])
+  @@map("bookmarks")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      Notification_Type
+  title     String
+  content   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model Discussion {
+  id        String   @id @default(uuid())
+  courseId  String?
+  lessonId  String?
+  title     String
+  content   String
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  course   Course?   @relation(fields: [courseId], references: [id])
+  lesson   Lesson?   @relation(fields: [lessonId], references: [id])
+  creator  User      @relation(fields: [createdBy], references: [id])
+  comments Comment[]
+
+  @@index([courseId])
+  @@index([lessonId])
+  @@index([createdBy])
+  @@index([createdAt])
+  @@map("discussions")
+}
+
+model Comment {
+  id           String   @id @default(uuid())
+  discussionId String
+  userId       String
+  content      String
+  parentId     String?  // cho phép trả lời comment khác
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  discussion Discussion @relation(fields: [discussionId], references: [id])
+  user       User       @relation(fields: [userId], references: [id])
+  parent     Comment?   @relation("CommentReplies", fields: [parentId], references: [id])
+  replies    Comment[]  @relation("CommentReplies")
+
+  @@index([discussionId])
+  @@index([userId])
+  @@index([parentId])
+  @@map("comments")
+}
