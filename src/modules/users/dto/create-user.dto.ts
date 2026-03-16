@@ -10,7 +10,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { Role } from 'generated/prisma/enums';
+import type { Role } from 'generated/prisma/client';
 
 export class CreateUserDto {
   @IsNotEmpty()
