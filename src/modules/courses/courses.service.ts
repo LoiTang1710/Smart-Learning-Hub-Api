@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateCourseDto } from './dto/create-course.dto';
@@ -15,7 +18,7 @@ export class CoursesService {
 
   // 2. GET /courses - lấy DS khóa học (Có phân trang & filter)
   async findAllCourse(query: CourseQueryDto) {
-    const { search, page, limit } = query;
+    const { search, page = query.page || 1, limit = query.limit || 10 } = query;
     const skip = (page - 1) * limit;
 
     const whereCondition = search
@@ -52,5 +55,34 @@ export class CoursesService {
     });
     return { message: `Xoá thành công id: ${id}` };
   }
+  // --- CÁC ENDPOINT QUAN HỆ ---
+  //GET /courses/:id/lessons: Lấy DS bài học
+  async getCourseLesson(courseId: string) {
+    await this.findCourseById(courseId);
+    return this.prisma.lesson.findMany({
+      where: { courseId },
+      orderBy: { order: 'desc' },
+    });
+  }
+
+  // GET /courses/:id/reviews: Lấy DS đánh giá
+  async getCourseReview(courseId: string) {
+    await this.findCourseById(courseId);
+    return this.prisma.review.findMany({
+      where: { courseId },
+      include: { user: { select: { fullName: true, avatarUrl: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+  // POST /courses/:id/enroll: Ghi danh
+  async enrollStudent(courseId: string, userId: string) {
+    await this.findCourseById(courseId);
+    return this.prisma.enrollment.create({
+      data: {
+        courseId: courseId,
+        userId: userId,
+        status: 'ACTIVE',
+      },
+    });
+  }
 }
-// --- CÁC ENDPOINT QUAN HỆ ---
