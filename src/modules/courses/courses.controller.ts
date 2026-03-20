@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 import {
   Body,
   Controller,
@@ -9,10 +8,12 @@ import {
   Param,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
+import { CourseQueryDto } from './dto/course-query.dto';
 
 @Controller('courses')
 export class CoursesController {
@@ -20,26 +21,44 @@ export class CoursesController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createCourse(@Body() createCourseDto: CreateCourseDto) {
-    return await this.courseService.createCourse(createCourseDto);
+  createCourse(@Body() createCourseDto: CreateCourseDto) {
+    return this.courseService.createCourse(createCourseDto);
   }
+  // GET /courses (vd: /courses?page=1&limit=5&search=node)
   @Get()
-  async findAll() {
-    return await this.courseService.findAll();
+  findAll(@Query() query: CourseQueryDto) {
+    return this.courseService.findAllCourse(query);
   }
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return await this.courseService.findOne(id);
+  findone(@Param('id') id: string) {
+    return this.courseService.findCourseById(id);
   }
   @Put(':id')
-  async updateCourse(
+  updateCourse(
     @Param('id') id: string,
     @Body() updateCourseDto: UpdateCourseDto,
   ) {
-    return await this.courseService.updateOne(id, updateCourseDto);
+    return this.courseService.updateCourse(id, updateCourseDto);
   }
   @Delete(':id')
-  async removeCourse(@Param('id') id: string) {
-    return await this.courseService.removeOne(id);
+  removeCourse(@Param('id') id: string) {
+    return this.courseService.removeOne(id);
+  }
+  // ==========================================
+  // CÁC ENDPOINT QUAN HỆ (Nested Routes)
+  // ==========================================
+  @Get(':id/lessons')
+  getLessons(@Param('id') id: string) {
+    return this.courseService.getCourseLesson(id);
+  }
+
+  @Get(':id/reviews')
+  getReviews(@Param('id') id: string) {
+    return this.courseService.getCourseReview(id);
+  }
+
+  @Post(':id/enroll')
+  enroll(@Param('id') courseId: string, @Body('userId') userId: string) {
+    return this.courseService.enrollStudent(courseId, userId);
   }
 }
