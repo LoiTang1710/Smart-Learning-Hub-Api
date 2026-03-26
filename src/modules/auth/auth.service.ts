@@ -11,7 +11,6 @@ import { UsersService } from 'src/modules/users/users.service';
 import * as bcrypt from 'bcrypt';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -19,14 +18,13 @@ export class AuthService {
     private jwt: JwtService,
     private user: UsersService,
     private prisma: PrismaService,
-    private config: ConfigService,
   ) {}
   // API LOGIN
   async login(loginDto: LoginDto) {
     const user = await this.user.findbyEmail(loginDto.email);
     if (!user || !bcrypt.compareSync(loginDto.password, user.password))
       throw new UnauthorizedException(`MSSV hoặc mật khẩu không đúng`);
-    const userInfo = { id: user.id, roleId: user.roleId };
+    const userInfo = { id: user.id, roleId: user.roleId, email: user.email };
     const accessToken = this.jwt.sign(userInfo, {
       secret: process.env.ACCESS_TOKEN_SECRET_SIGNATURE,
       expiresIn: '1h',
@@ -35,9 +33,10 @@ export class AuthService {
       secret: process.env.REFRESH_TOKEN_SERCRET_SIGNATURE,
       expiresIn: '7d',
     });
+
     if (!accessToken || !refreshToken)
       throw new Error('Khởi tạo accessToken và refreshToken thất bại');
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, userInfo };
   }
   // API REGISTER
   async register(registerDto: RegisterDto) {
