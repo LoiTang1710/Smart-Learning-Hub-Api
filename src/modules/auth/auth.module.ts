@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
   imports: [
     JwtModule.register({
       global: true,
-      secret: process.env.ACCESS_TOKEN_SECRET_KEY,
+      secret: process.env.ACCESS_TOKEN_SECRET_SIGNATURE,
       signOptions: { expiresIn: '1h' },
     }),
   ],
