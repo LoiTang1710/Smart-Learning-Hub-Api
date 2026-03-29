@@ -5,7 +5,7 @@ import {
   Controller,
   Get,
   Post,
-  Request,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -42,11 +42,16 @@ export class AuthController {
       maxAge: ms('7 days'),
     });
 
-    return this.authService.login(loginDto);
+    return {
+      message: 'Đăng nhập thành công',
+      data: {
+        userInfo: token.userInfo,
+      },
+    };
   }
   @UseGuards(AuthGuard)
   @Get('profile')
-  getProfile(@Request() req) {
+  getProfile(@Req() req) {
     return req.user;
   }
 }
